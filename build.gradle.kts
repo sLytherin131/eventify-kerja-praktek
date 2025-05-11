@@ -1,17 +1,17 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
-    alias(libs.plugins.kotlin.jvm)
-    alias(libs.plugins.ktor)
-    alias(libs.plugins.kotlin.plugin.serialization)
+    kotlin("jvm") version "1.8.21"
+    kotlin("plugin.serialization") version "1.8.21"
+    application
+    id("io.ktor.plugin") version "2.3.0"
 }
 
-group = "com.example"
+group = "com.eventify"
 version = "0.0.1"
 
 application {
-    mainClass = "io.ktor.server.netty.EngineMain"
-
-    val isDevelopment: Boolean = project.ext.has("development")
-    applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")
+    mainClass.set("com.eventify.ApplicationKt")
 }
 
 repositories {
@@ -19,30 +19,33 @@ repositories {
 }
 
 dependencies {
-    // Ktor
-    implementation(libs.ktor.server.core)
-    implementation(libs.ktor.server.netty)
-    implementation(libs.ktor.server.content.negotiation)
-    implementation(libs.ktor.serialization.kotlinx.json)
-    implementation(libs.ktor.server.call.logging)
-    implementation(libs.ktor.serialization.gson)
-    implementation(libs.ktor.server.config.yaml)
+    implementation("io.ktor:ktor-server-core-jvm:2.3.0")
+    implementation("io.ktor:ktor-server-netty-jvm:2.3.0")
+    implementation("io.ktor:ktor-server-content-negotiation-jvm:2.3.0")
+    implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:2.3.0")
+    implementation("io.ktor:ktor-server-auth-jvm:2.3.0")
+    implementation("io.ktor:ktor-server-auth-jwt-jvm:2.3.0")
 
-    // Exposed (ORM)
-    implementation(libs.exposed.core)
-    implementation("org.jetbrains.exposed:exposed-dao:0.43.0")               // Tambahkan ini
-    implementation("org.jetbrains.exposed:exposed-jdbc:0.43.0")
-    implementation("org.jetbrains.exposed:exposed-core:0.43.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")// Tambahkan ini untuk timestamp/datetime
-
-    // MySQL Connector
+    implementation("org.jetbrains.exposed:exposed-core:0.41.1")
+    implementation("org.jetbrains.exposed:exposed-dao:0.41.1")
+    implementation("org.jetbrains.exposed:exposed-jdbc:0.41.1")
+    implementation("com.zaxxer:HikariCP:5.0.1")
     implementation("mysql:mysql-connector-java:8.0.33")
 
-    // Logging
-    implementation(libs.logback.classic)
+    implementation("org.mindrot:jbcrypt:0.4")
+    implementation("ch.qos.logback:logback-classic:1.4.7")
 
-    // Testing
-    testImplementation(libs.ktor.server.test.host)
-    testImplementation(libs.kotlin.test.junit)
+    testImplementation("io.ktor:ktor-server-tests-jvm:2.3.0")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.8.21")
 }
 
+tasks.withType<KotlinCompile> {
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}

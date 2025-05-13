@@ -2,6 +2,7 @@ package com.eventify
 
 import com.eventify.routes.registerAdminRoutes
 import com.eventify.routes.registerPersonalTaskRoutes
+import com.eventify.routes.registerMemberRoutes
 import com.eventify.database.DatabaseFactory
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
@@ -15,6 +16,7 @@ fun main() {
         DatabaseFactory.init()
         registerAdminRoutes()
         registerPersonalTaskRoutes() // Newly added endpoint for personal tasks
+        registerMemberRoutes() // Newly added endpoint for members
     }.start(wait = true)
 }
 

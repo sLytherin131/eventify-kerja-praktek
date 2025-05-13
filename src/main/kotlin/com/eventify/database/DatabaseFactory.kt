@@ -7,6 +7,7 @@ import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
 import com.eventify.models.Admins
 import com.eventify.models.PersonalTasks
+import com.eventify.models.Members
 
 object DatabaseFactory {
     fun init() {
@@ -26,6 +27,7 @@ object DatabaseFactory {
         transaction {
             SchemaUtils.createMissingTablesAndColumns(Admins)
             SchemaUtils.createMissingTablesAndColumns(PersonalTasks)
+            SchemaUtils.createMissingTablesAndColumns(Members)
         }
     }
 }

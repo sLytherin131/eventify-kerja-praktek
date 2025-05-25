@@ -1,7 +1,8 @@
 package com.eventify.repository
 
 import com.eventify.models.*
-import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
 
 class EventRepository {
@@ -9,7 +10,6 @@ class EventRepository {
     fun createCompositeEvent(event: Event, tasks: List<EventTask>, members: List<EventMember>): Event? {
         return try {
             transaction {
-                // Insert event and get generated id
                 val eventId = Events.insert {
                     it[name] = event.name
                     it[description] = event.description
@@ -18,7 +18,6 @@ class EventRepository {
                     it[createdBy] = event.createdBy
                 } get Events.id
 
-                // Insert event tasks using eventId
                 tasks.forEach { task ->
                     EventTasks.insert {
                         it[EventTasks.eventId] = eventId
@@ -28,19 +27,163 @@ class EventRepository {
                     }
                 }
 
-                // Insert event members using eventId
                 members.forEach { member ->
                     EventMembers.insert {
                         it[EventMembers.eventId] = eventId
                         it[memberWhatsapp] = member.memberWhatsapp
                     }
                 }
-                // Return the event with generated id
+
                 event.copy(id = eventId)
             }
         } catch (e: Exception) {
             e.printStackTrace()
             null
         }
+    }
+
+    fun getAllEventsWithDetails(): List<Map<String, Any>> = transaction {
+        Events.selectAll().map { eventRow ->
+            val eventId = eventRow[Events.id]
+
+            val tasks = EventTasks.select { EventTasks.eventId eq eventId }.map {
+                EventTask(
+                    id = it[EventTasks.id],
+                    eventId = it[EventTasks.eventId],
+                    description = it[EventTasks.description],
+                    taskType = it[EventTasks.taskType],
+                    createdAt = it[EventTasks.createdAt]
+                )
+            }
+
+            val members = EventMembers.select { EventMembers.eventId eq eventId }.map {
+                EventMember(
+                    id = it[EventMembers.id],
+                    eventId = it[EventMembers.eventId],
+                    memberWhatsapp = it[EventMembers.memberWhatsapp]
+                )
+            }
+
+            mapOf(
+                "event" to Event(
+                    id = eventRow[Events.id],
+                    name = eventRow[Events.name],
+                    description = eventRow[Events.description],
+                    startTime = eventRow[Events.startTime],
+                    endTime = eventRow[Events.endTime],
+                    createdBy = eventRow[Events.createdBy]
+                ),
+                "tasks" to tasks,
+                "members" to members
+            )
+        }
+    }
+
+    fun getEventsByCreatedBy(createdBy: String): List<Map<String, Any>> = transaction {
+        Events.select { Events.createdBy eq createdBy }.map { eventRow ->
+            val eventId = eventRow[Events.id]
+
+            val tasks = EventTasks.select { EventTasks.eventId eq eventId }.map {
+                EventTask(
+                    id = it[EventTasks.id],
+                    eventId = it[EventTasks.eventId],
+                    description = it[EventTasks.description],
+                    taskType = it[EventTasks.taskType],
+                    createdAt = it[EventTasks.createdAt]
+                )
+            }
+
+            val members = EventMembers.select { EventMembers.eventId eq eventId }.map {
+                EventMember(
+                    id = it[EventMembers.id],
+                    eventId = it[EventMembers.eventId],
+                    memberWhatsapp = it[EventMembers.memberWhatsapp]
+                )
+            }
+
+            mapOf(
+                "event" to Event(
+                    id = eventRow[Events.id],
+                    name = eventRow[Events.name],
+                    description = eventRow[Events.description],
+                    startTime = eventRow[Events.startTime],
+                    endTime = eventRow[Events.endTime],
+                    createdBy = eventRow[Events.createdBy]
+                ),
+                "tasks" to tasks,
+                "members" to members
+            )
+        }
+    }
+
+    fun getEventWithDetailsById(id: Int): Map<String, Any>? = transaction {
+        val eventRow = Events.select { Events.id eq id }.singleOrNull() ?: return@transaction null
+
+        val tasks = EventTasks.select { EventTasks.eventId eq id }.map {
+            EventTask(
+                id = it[EventTasks.id],
+                eventId = it[EventTasks.eventId],
+                description = it[EventTasks.description],
+                taskType = it[EventTasks.taskType],
+                createdAt = it[EventTasks.createdAt]
+            )
+        }
+
+        val members = EventMembers.select { EventMembers.eventId eq id }.map {
+            EventMember(
+                id = it[EventMembers.id],
+                eventId = it[EventMembers.eventId],
+                memberWhatsapp = it[EventMembers.memberWhatsapp]
+            )
+        }
+
+        mapOf(
+            "event" to Event(
+                id = eventRow[Events.id],
+                name = eventRow[Events.name],
+                description = eventRow[Events.description],
+                startTime = eventRow[Events.startTime],
+                endTime = eventRow[Events.endTime],
+                createdBy = eventRow[Events.createdBy]
+            ),
+            "tasks" to tasks,
+            "members" to members
+        )
+    }
+
+    fun updateCompositeEvent(id: Int, newEvent: Event, tasks: List<EventTask>, members: List<EventMember>): Boolean = transaction {
+        val updated = Events.update({ Events.id eq id }) {
+            it[name] = newEvent.name
+            it[description] = newEvent.description
+            it[startTime] = newEvent.startTime
+            it[endTime] = newEvent.endTime
+            it[createdBy] = newEvent.createdBy
+        }
+
+        EventTasks.deleteWhere { EventTasks.eventId eq id }
+        tasks.forEach { task ->
+            EventTasks.insert {
+                it[eventId] = id
+                it[description] = task.description
+                it[taskType] = task.taskType
+                it[createdAt] = task.createdAt
+            }
+        }
+
+        EventMembers.deleteWhere { EventMembers.eventId eq id }
+        members.forEach { member ->
+            EventMembers.insert {
+                it[eventId] = id
+                it[memberWhatsapp] = member.memberWhatsapp
+            }
+        }
+
+        updated > 0
+    }
+
+    fun deleteEventById(id: Int): Boolean = transaction {
+        EventTasks.deleteWhere { EventTasks.eventId eq id }
+        EventMembers.deleteWhere { EventMembers.eventId eq id }
+        Events.deleteWhere { Events.id eq id } > 0
     }
 }

@@ -1,8 +1,6 @@
 package com.eventify.routes
 
-import com.eventify.models.Event
-import com.eventify.models.EventMember
-import com.eventify.models.EventTask
+import com.eventify.models.*
 import com.eventify.repository.EventRepository
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -16,12 +14,18 @@ fun Application.registerEventRoutes() {
 
     routing {
         route("/events") {
+
+            // CREATE
             post {
                 val request = call.receive<CreateEventRequest>()
-
-                // Basic validation (ensure required fields are present)
-                if(request.name.isBlank() || request.createdBy.isBlank()){
+                if (request.name.isBlank() || request.createdBy.isBlank()) {
                     call.respond(HttpStatusCode.BadRequest, "Missing required fields")
+                    return@post
+                }
+
+                val validTaskTypes = setOf("normal", "urgent")
+                if (request.eventTasks.any { it.taskType !in validTaskTypes }) {
+                    call.respond(HttpStatusCode.BadRequest, "Invalid task type. Must be 'normal' or 'urgent'")
                     return@post
                 }
 
@@ -32,18 +36,19 @@ fun Application.registerEventRoutes() {
                     endTime = request.endTime,
                     createdBy = request.createdBy
                 )
-                // Prepare tasks and members from request
+
                 val tasks = request.eventTasks.map {
                     EventTask(
-                        eventId = 0, // will use the generated id
+                        eventId = 0,
                         description = it.description,
                         taskType = it.taskType,
                         createdAt = it.createdAt
                     )
                 }
+
                 val members = request.eventMembers.map {
                     EventMember(
-                        eventId = 0, // will be set in repository
+                        eventId = 0,
                         memberWhatsapp = it.memberWhatsapp
                     )
                 }
@@ -55,7 +60,98 @@ fun Application.registerEventRoutes() {
                     call.respond(HttpStatusCode.InternalServerError, "Failed to create event")
                 }
             }
-            // (Optional) You can add GET, PUT, DELETE endpoints here as needed.
+
+            // READ ALL EVENTS (Filtered by createdBy if passed as query param)
+            get {
+                val createdBy = call.request.queryParameters["createdBy"]
+                val events = if (createdBy != null) {
+                    eventRepository.getEventsByCreatedBy(createdBy)
+                } else {
+                    eventRepository.getAllEventsWithDetails()
+                }
+                call.respond(HttpStatusCode.OK, events)
+            }
+
+            // READ SINGLE EVENT
+            get("/{id}") {
+                val id = call.parameters["id"]?.toIntOrNull()
+                if (id == null) {
+                    call.respond(HttpStatusCode.BadRequest, "Invalid or missing ID")
+                    return@get
+                }
+
+                val event = eventRepository.getEventWithDetailsById(id)
+                if (event != null) {
+                    call.respond(HttpStatusCode.OK, event)
+                } else {
+                    call.respond(HttpStatusCode.NotFound, "Event not found")
+                }
+            }
+
+            // UPDATE EVENT
+            put("/{id}") {
+                val id = call.parameters["id"]?.toIntOrNull()
+                if (id == null) {
+                    call.respond(HttpStatusCode.BadRequest, "Invalid ID")
+                    return@put
+                }
+
+                val request = call.receive<CreateEventRequest>()
+
+                val validTaskTypes = setOf("normal", "urgent")
+                if (request.eventTasks.any { it.taskType !in validTaskTypes }) {
+                    call.respond(HttpStatusCode.BadRequest, "Invalid task type. Must be 'normal' or 'urgent'")
+                    return@put
+                }
+
+                val updatedEvent = Event(
+                    id = id,
+                    name = request.name,
+                    description = request.description,
+                    startTime = request.startTime,
+                    endTime = request.endTime,
+                    createdBy = request.createdBy
+                )
+
+                val updatedTasks = request.eventTasks.map {
+                    EventTask(
+                        eventId = id,
+                        description = it.description,
+                        taskType = it.taskType,
+                        createdAt = it.createdAt
+                    )
+                }
+
+                val updatedMembers = request.eventMembers.map {
+                    EventMember(
+                        eventId = id,
+                        memberWhatsapp = it.memberWhatsapp
+                    )
+                }
+
+                val result = eventRepository.updateCompositeEvent(id, updatedEvent, updatedTasks, updatedMembers)
+                if (result) {
+                    call.respond(HttpStatusCode.OK, "Event updated successfully")
+                } else {
+                    call.respond(HttpStatusCode.InternalServerError, "Failed to update event")
+                }
+            }
+
+            // DELETE EVENT
+            delete("/{id}") {
+                val id = call.parameters["id"]?.toIntOrNull()
+                if (id == null) {
+                    call.respond(HttpStatusCode.BadRequest, "Invalid ID")
+                    return@delete
+                }
+
+                val result = eventRepository.deleteEventById(id)
+                if (result) {
+                    call.respond(HttpStatusCode.OK, "Event deleted successfully")
+                } else {
+                    call.respond(HttpStatusCode.InternalServerError, "Failed to delete event")
+                }
+            }
         }
     }
 }

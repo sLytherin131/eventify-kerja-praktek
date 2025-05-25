@@ -8,7 +8,6 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 
 fun Application.registerPersonalTaskRoutes() {
     val repository = PersonalTaskRepository()
@@ -60,20 +59,24 @@ fun Application.registerPersonalTaskRoutes() {
             // Update an existing task
             put("{id}") {
                 val id = call.parameters["id"]?.toIntOrNull()
-                if (id == null) {
-                    call.respond(HttpStatusCode.BadRequest, "Invalid task id")
+                val adminWhatsapp = call.request.queryParameters["admin_whatsapp"]
+                if (id == null || adminWhatsapp == null) {
+                    call.respond(HttpStatusCode.BadRequest, "Invalid task id or admin_whatsapp is missing")
                     return@put
                 }
+
                 val request = call.receive<UpdatePersonalTaskRequest>()
                 val existingTask = repository.getById(id)
-                if (existingTask == null) {
-                    call.respond(HttpStatusCode.NotFound, "Task not found")
+                if (existingTask == null || existingTask.adminWhatsapp != adminWhatsapp) {
+                    call.respond(HttpStatusCode.NotFound, "Task not found or you are not authorized to update it")
                     return@put
                 }
+
                 val updatedTask = existingTask.copy(
                     description = request.description ?: existingTask.description,
                     taskType = request.taskType ?: existingTask.taskType
                 )
+
                 if (repository.update(updatedTask)) {
                     call.respond(HttpStatusCode.OK, updatedTask)
                 } else {
@@ -84,10 +87,18 @@ fun Application.registerPersonalTaskRoutes() {
             // Delete a task by id
             delete("{id}") {
                 val id = call.parameters["id"]?.toIntOrNull()
-                if (id == null) {
-                    call.respond(HttpStatusCode.BadRequest, "Invalid task id")
+                val adminWhatsapp = call.request.queryParameters["admin_whatsapp"]
+                if (id == null || adminWhatsapp == null) {
+                    call.respond(HttpStatusCode.BadRequest, "Invalid task id or admin_whatsapp is missing")
                     return@delete
                 }
+
+                val task = repository.getById(id)
+                if (task == null || task.adminWhatsapp != adminWhatsapp) {
+                    call.respond(HttpStatusCode.NotFound, "Task not found or you are not authorized to delete it")
+                    return@delete
+                }
+
                 if (repository.delete(id)) {
                     call.respond(HttpStatusCode.OK, "Task deleted successfully")
                 } else {

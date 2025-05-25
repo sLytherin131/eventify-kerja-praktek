@@ -2,97 +2,98 @@ package com.eventify.routes
 
 import com.eventify.models.Member
 import com.eventify.repository.MemberRepository
-import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotlinx.serialization.Serializable
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import io.ktor.http.*
 
 fun Application.registerMemberRoutes() {
-    val repository = MemberRepository()
+    val memberRepository = MemberRepository()
 
     routing {
         route("/members") {
-            get {
-                val members = repository.getAll()
-                call.respond(HttpStatusCode.OK, members)
-            }
-
-            get("{whatsappNumber}") {
-                val whatsappNumber = call.parameters["whatsappNumber"]
-                if (whatsappNumber.isNullOrEmpty()) {
-                    call.respond(HttpStatusCode.BadRequest, "Invalid WhatsApp number")
-                    return@get
-                }
-                val member = repository.getByWhatsappNumber(whatsappNumber)
-                if (member == null) {
-                    call.respond(HttpStatusCode.NotFound, "Member not found")
-                } else {
-                    call.respond(HttpStatusCode.OK, member)
-                }
-            }
-
+            // Create member
             post {
-                val request = call.receive<MemberRequest>()
+                val memberRequest = call.receive<MemberRequest>()
                 val member = Member(
-                    whatsappNumber = request.whatsappNumber,
-                    name = request.name
+                    whatsappNumber = memberRequest.whatsappNumber,
+                    name = memberRequest.name,
+                    createdAt = System.currentTimeMillis()
                 )
-                val createdMember = repository.create(member)
-                if (createdMember != null) {
-                    call.respond(HttpStatusCode.Created, createdMember)
+                val created = memberRepository.create(member)
+                if (created != null) {
+                    call.respond(HttpStatusCode.Created, created)
                 } else {
                     call.respond(HttpStatusCode.InternalServerError, "Failed to create member")
                 }
             }
 
-            put("{whatsappNumber}") {
+            // Get all members
+            get {
+                val members = memberRepository.getAll()
+                call.respond(members)
+            }
+
+            // Get member by WhatsApp number
+            get("/{whatsappNumber}") {
                 val whatsappNumber = call.parameters["whatsappNumber"]
-                if (whatsappNumber.isNullOrEmpty()) {
-                    call.respond(HttpStatusCode.BadRequest, "Invalid WhatsApp number")
-                    return@put
+                if (whatsappNumber == null) {
+                    call.respond(HttpStatusCode.BadRequest, "WhatsApp number is required")
+                    return@get
                 }
-                val request = call.receive<UpdateMemberRequest>()
-                val existingMember = repository.getByWhatsappNumber(whatsappNumber)
-                if (existingMember == null) {
-                    call.respond(HttpStatusCode.NotFound, "Member not found")
-                    return@put
-                }
-                val updatedMember = existingMember.copy(
-                    name = request.name ?: existingMember.name
-                )
-                if (repository.update(updatedMember)) {
-                    call.respond(HttpStatusCode.OK, updatedMember)
+                val member = memberRepository.getByWhatsappNumber(whatsappNumber)
+                if (member != null) {
+                    call.respond(member)
                 } else {
-                    call.respond(HttpStatusCode.InternalServerError, "Failed to update member")
+                    call.respond(HttpStatusCode.NotFound, "Member not found")
                 }
             }
 
-            delete("{whatsappNumber}") {
+            // Update member by WhatsApp number
+            put("/{whatsappNumber}") {
                 val whatsappNumber = call.parameters["whatsappNumber"]
-                if (whatsappNumber.isNullOrEmpty()) {
-                    call.respond(HttpStatusCode.BadRequest, "Invalid WhatsApp number")
+                if (whatsappNumber == null) {
+                    call.respond(HttpStatusCode.BadRequest, "WhatsApp number is required")
+                    return@put
+                }
+
+                val memberRequest = call.receive<MemberRequest>()
+                val updated = memberRepository.update(
+                    Member(
+                        whatsappNumber = whatsappNumber,
+                        name = memberRequest.name,
+                        createdAt = System.currentTimeMillis() // optional: not updated
+                    )
+                )
+                if (updated) {
+                    call.respond(HttpStatusCode.OK, "Member updated successfully")
+                } else {
+                    call.respond(HttpStatusCode.NotFound, "Member not found or update failed")
+                }
+            }
+
+            // Delete member by WhatsApp number
+            delete("/{whatsappNumber}") {
+                val whatsappNumber = call.parameters["whatsappNumber"]
+                if (whatsappNumber == null) {
+                    call.respond(HttpStatusCode.BadRequest, "WhatsApp number is required")
                     return@delete
                 }
-                if (repository.delete(whatsappNumber)) {
+
+                val deleted = memberRepository.delete(whatsappNumber)
+                if (deleted) {
                     call.respond(HttpStatusCode.OK, "Member deleted successfully")
                 } else {
-                    call.respond(HttpStatusCode.InternalServerError, "Failed to delete member")
+                    call.respond(HttpStatusCode.NotFound, "Member not found or deletion failed")
                 }
             }
         }
     }
 }
 
-@Serializable
+@kotlinx.serialization.Serializable
 data class MemberRequest(
     val whatsappNumber: String,
     val name: String
-)
-
-@Serializable
-data class UpdateMemberRequest(
-    val name: String? = null
 )

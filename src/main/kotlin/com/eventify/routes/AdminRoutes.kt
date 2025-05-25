@@ -36,14 +36,16 @@ fun Application.registerAdminRoutes() {
 
             post("/login") {
                 val loginRequest = call.receive<LoginRequest>()
-                val admin = adminRepository.findByWhatsappNumber(loginRequest.whatsappNumber)
+                // Find admin by whatsapp number or email
+                val admin = adminRepository.findByWhatsappNumber(loginRequest.identifier)
+                    ?: adminRepository.findByEmail(loginRequest.identifier)
                 if (admin == null) {
-                    call.respond(HttpStatusCode.Unauthorized, "Invalid WhatsApp number or password")
+                    call.respond(HttpStatusCode.Unauthorized, "Invalid WhatsApp number/email or password")
                     return@post
                 }
                 val passwordValid = adminRepository.verifyPassword(loginRequest.password, admin.password)
                 if (!passwordValid) {
-                    call.respond(HttpStatusCode.Unauthorized, "Invalid WhatsApp number or password")
+                    call.respond(HttpStatusCode.Unauthorized, "Invalid WhatsApp number/email or password")
                     return@post
                 }
                 call.respond(HttpStatusCode.OK, "Login successful")
@@ -62,6 +64,6 @@ data class AdminRequest(
 
 @kotlinx.serialization.Serializable
 data class LoginRequest(
-    val whatsappNumber: String,
+    val identifier: String, // can be whatsapp number or email
     val password: String
 )

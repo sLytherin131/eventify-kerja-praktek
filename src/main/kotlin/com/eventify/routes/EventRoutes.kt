@@ -2,11 +2,14 @@ package com.eventify.routes
 
 import com.eventify.models.*
 import com.eventify.repository.EventRepository
+import com.eventify.service.WablasService
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
 fun Application.registerEventRoutes() {
@@ -55,6 +58,25 @@ fun Application.registerEventRoutes() {
 
                 val createdEvent = eventRepository.createCompositeEvent(event, tasks, members)
                 if (createdEvent != null) {
+                    // Kirim pesan WhatsApp ke semua anggota
+                    GlobalScope.launch {
+                        val message = """
+                            📢 *Event Baru Telah Dibuat!*
+                            🏷️ Nama: ${createdEvent.name}
+                            📝 Deskripsi: ${createdEvent.description}
+                            🕒 Mulai: ${createdEvent.startTime}
+                            🕔 Selesai: ${createdEvent.endTime}
+                            👤 Dibuat oleh: ${createdEvent.createdBy}
+                        """.trimIndent()
+
+                        members.forEach { member ->
+                            WablasService.sendMessage(
+                                phone = member.memberWhatsapp,
+                                message = message
+                            )
+                        }
+                    }
+
                     call.respond(HttpStatusCode.Created, createdEvent)
                 } else {
                     call.respond(HttpStatusCode.InternalServerError, "Failed to create event")

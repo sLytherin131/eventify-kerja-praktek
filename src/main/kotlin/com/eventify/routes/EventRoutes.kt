@@ -13,6 +13,17 @@ import io.ktor.server.routing.*
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.*
+
+fun formatDateTime(epochMillis: Long): String {
+    val formatter = DateTimeFormatter.ofPattern("EEEE – HH:mm, dd MMMM yyyy")
+        .withLocale(Locale.ENGLISH)
+        .withZone(ZoneId.of("Asia/Jakarta"))
+    return formatter.format(Instant.ofEpochMilli(epochMillis))
+}
 
 fun Application.registerEventRoutes() {
     val eventRepository = EventRepository()
@@ -65,14 +76,20 @@ fun Application.registerEventRoutes() {
                     val createdEvent = eventRepository.createCompositeEvent(event, tasks, members)
                     if (createdEvent != null) {
                         GlobalScope.launch {
-                            val message = """
-                                📢 *Event Baru Telah Dibuat!*
-                                🏷️ Nama: ${createdEvent.name}
-                                📝 Deskripsi: ${createdEvent.description}
-                                🕒 Mulai: ${createdEvent.startTime}
-                                🕔 Selesai: ${createdEvent.endTime}
-                                👤 Dibuat oleh: ${createdEvent.createdBy}
-                            """.trimIndent()
+                            val message = buildString {
+                                appendLine("📢 *Event Baru Telah Dibuat!*")
+                                appendLine()
+                                appendLine("${createdEvent.name}")
+                                appendLine("${formatDateTime(createdEvent.startTime)}")
+                                appendLine("${formatDateTime(createdEvent.endTime)}")
+                                appendLine()
+                                appendLine("${createdEvent.description}")
+                                appendLine()
+                                appendLine("Task:")
+                                request.eventTasks.forEachIndexed { index, task ->
+                                    appendLine("${index + 1}. ${task.description} – ${task.taskType.replaceFirstChar { it.uppercase() }}")
+                                }
+                            }
 
                             members.forEach { member ->
                                 WablasService.sendMessage(
@@ -187,7 +204,7 @@ fun Application.registerEventRoutes() {
     }
 }
 
-// -- Perubahan: createdBy dihapus
+// Data classes for request
 @Serializable
 data class CreateEventRequest(
     val name: String,

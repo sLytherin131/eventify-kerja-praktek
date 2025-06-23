@@ -4,6 +4,14 @@ import com.eventify.models.*
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class EventWithDetails(
+    val event: Event,
+    val tasks: List<EventTask>,
+    val members: List<EventMember>
+)
 
 class EventRepository {
 
@@ -42,7 +50,7 @@ class EventRepository {
         }
     }
 
-    fun getAllEventsWithDetails(): List<Map<String, Any>> = transaction {
+    fun getAllEventsWithDetails(): List<EventWithDetails> = transaction {
         Events.selectAll().map { eventRow ->
             val eventId = eventRow[Events.id]
 
@@ -64,8 +72,8 @@ class EventRepository {
                 )
             }
 
-            mapOf(
-                "event" to Event(
+            EventWithDetails(
+                event = Event(
                     id = eventRow[Events.id],
                     name = eventRow[Events.name],
                     description = eventRow[Events.description],
@@ -73,13 +81,13 @@ class EventRepository {
                     endTime = eventRow[Events.endTime],
                     createdBy = eventRow[Events.createdBy]
                 ),
-                "tasks" to tasks,
-                "members" to members
+                tasks = tasks,
+                members = members
             )
         }
     }
 
-    fun getEventsByCreatedBy(createdBy: String): List<Map<String, Any>> = transaction {
+    fun getEventsByCreatedBy(createdBy: String): List<EventWithDetails> = transaction {
         Events.select { Events.createdBy eq createdBy }.map { eventRow ->
             val eventId = eventRow[Events.id]
 
@@ -101,8 +109,8 @@ class EventRepository {
                 )
             }
 
-            mapOf(
-                "event" to Event(
+            EventWithDetails(
+                event = Event(
                     id = eventRow[Events.id],
                     name = eventRow[Events.name],
                     description = eventRow[Events.description],
@@ -110,13 +118,13 @@ class EventRepository {
                     endTime = eventRow[Events.endTime],
                     createdBy = eventRow[Events.createdBy]
                 ),
-                "tasks" to tasks,
-                "members" to members
+                tasks = tasks,
+                members = members
             )
         }
     }
 
-    fun getEventWithDetailsById(id: Int): Map<String, Any>? = transaction {
+    fun getEventWithDetailsById(id: Int): EventWithDetails? = transaction {
         val eventRow = Events.select { Events.id eq id }.singleOrNull() ?: return@transaction null
 
         val tasks = EventTasks.select { EventTasks.eventId eq id }.map {
@@ -137,8 +145,8 @@ class EventRepository {
             )
         }
 
-        mapOf(
-            "event" to Event(
+        EventWithDetails(
+            event = Event(
                 id = eventRow[Events.id],
                 name = eventRow[Events.name],
                 description = eventRow[Events.description],
@@ -146,8 +154,8 @@ class EventRepository {
                 endTime = eventRow[Events.endTime],
                 createdBy = eventRow[Events.createdBy]
             ),
-            "tasks" to tasks,
-            "members" to members
+            tasks = tasks,
+            members = members
         )
     }
 

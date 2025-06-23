@@ -4,6 +4,7 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.eventify.models.Admin
 import com.eventify.repository.AdminRepository
+import com.eventify.service.WablasService
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -11,6 +12,8 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.serialization.Serializable
+import java.util.concurrent.ConcurrentHashMap
 
 fun Application.registerAdminRoutes() {
     val adminRepository = AdminRepository()
@@ -64,13 +67,16 @@ fun Application.registerAdminRoutes() {
                     return@put
                 }
                 val updateRequest = call.receive<AdminRequest>()
-                val updated = adminRepository.updateAdmin(whatsappNumber, Admin(
-                    whatsappNumber = whatsappNumber,
-                    name = updateRequest.name,
-                    email = updateRequest.email,
-                    password = updateRequest.password,
-                    createdAt = System.currentTimeMillis()
-                ))
+                val updated = adminRepository.updateAdmin(
+                    whatsappNumber,
+                    Admin(
+                        whatsappNumber = whatsappNumber,
+                        name = updateRequest.name,
+                        email = updateRequest.email,
+                        password = updateRequest.password,
+                        createdAt = System.currentTimeMillis()
+                    )
+                )
                 if (updated) {
                     call.respond(HttpStatusCode.OK, "Admin updated successfully")
                 } else {
@@ -109,6 +115,65 @@ fun Application.registerAdminRoutes() {
                 call.respond(HttpStatusCode.OK, mapOf("token" to token))
             }
 
+            // ✅ SEND RESET CODE
+            post("/send-reset-code") {
+                val request = call.receive<Map<String, String>>()
+                val identifier = request["identifier"]
+                if (identifier.isNullOrBlank()) {
+                    call.respond(HttpStatusCode.BadRequest, "Missing identifier")
+                    return@post
+                }
+
+                val admin = adminRepository.findByWhatsappNumber(identifier) ?: adminRepository.findByEmail(identifier)
+                if (admin == null) {
+                    call.respond(HttpStatusCode.NotFound, "Admin tidak ditemukan")
+                    return@post
+                }
+
+                val code = (100000..999999).random().toString()
+                ResetCodeStorage.codes[identifier] = code
+
+                WablasService.sendMessage(identifier, "Kode reset password Anda: $code")
+                call.respond(HttpStatusCode.OK, "Kode verifikasi telah dikirim")
+            }
+
+            // ✅ RESET PASSWORD
+            post("/reset-password") {
+                val request = call.receive<Map<String, String>>()
+                val identifier = request["identifier"]
+                val code = request["code"]
+                val newPassword = request["newPassword"]
+
+                if (identifier.isNullOrBlank() || code.isNullOrBlank() || newPassword.isNullOrBlank()) {
+                    call.respond(HttpStatusCode.BadRequest, "Semua field wajib diisi")
+                    return@post
+                }
+
+                val validCode = ResetCodeStorage.codes[identifier]
+                if (validCode != code) {
+                    call.respond(HttpStatusCode.BadRequest, "Kode salah atau sudah kadaluarsa")
+                    return@post
+                }
+
+                val admin = adminRepository.findByWhatsappNumber(identifier) ?: adminRepository.findByEmail(identifier)
+                if (admin == null) {
+                    call.respond(HttpStatusCode.NotFound, "Admin tidak ditemukan")
+                    return@post
+                }
+
+                val updated = adminRepository.updateAdmin(
+                    admin.whatsappNumber,
+                    admin.copy(password = newPassword)
+                )
+
+                if (updated) {
+                    ResetCodeStorage.codes.remove(identifier)
+                    call.respond(HttpStatusCode.OK, "Password berhasil diubah")
+                } else {
+                    call.respond(HttpStatusCode.InternalServerError, "Gagal mengubah password")
+                }
+            }
+
             authenticate("auth-jwt") {
                 get("/me") {
                     val principal = call.principal<JWTPrincipal>()
@@ -126,16 +191,23 @@ fun Application.registerAdminRoutes() {
     }
 }
 
+// ✅ Token generator
 fun generateToken(admin: Admin): String {
     return JWT.create()
         .withAudience("eventify-users")
         .withIssuer("eventify")
         .withClaim("whatsappNumber", admin.whatsappNumber)
         .withClaim("email", admin.email)
-        .sign(Algorithm.HMAC256("secret")) // Ganti dengan kunci rahasia yang aman di environment variable
+        .sign(Algorithm.HMAC256("secret")) // Gunakan environment variable untuk security
 }
 
-@kotlinx.serialization.Serializable
+// ✅ Tempat simpan kode verifikasi (sementara)
+object ResetCodeStorage {
+    val codes = ConcurrentHashMap<String, String>()
+}
+
+// ✅ Data classes
+@Serializable
 data class AdminRequest(
     val whatsappNumber: String,
     val name: String,
@@ -143,7 +215,7 @@ data class AdminRequest(
     val password: String
 )
 
-@kotlinx.serialization.Serializable
+@Serializable
 data class LoginRequest(
     val identifier: String, // bisa whatsapp number atau email
     val password: String

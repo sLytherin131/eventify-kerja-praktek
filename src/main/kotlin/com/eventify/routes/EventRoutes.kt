@@ -105,7 +105,7 @@ fun Application.registerEventRoutes() {
                     }
                 }
 
-                // READ ALL EVENTS
+                // Tambahkan data class ini
                 get {
                     val createdBy = call.request.queryParameters["createdBy"]
                     val events = if (createdBy != null) {
@@ -113,6 +113,8 @@ fun Application.registerEventRoutes() {
                     } else {
                         eventRepository.getAllEventsWithDetails()
                     }
+
+                    // Langsung respond list-nya
                     call.respond(HttpStatusCode.OK, events)
                 }
 
@@ -132,7 +134,6 @@ fun Application.registerEventRoutes() {
                     }
                 }
 
-                // UPDATE EVENT
                 put("/{id}") {
                     val id = call.parameters["id"]?.toIntOrNull()
                     if (id == null) {
@@ -178,6 +179,31 @@ fun Application.registerEventRoutes() {
 
                     val result = eventRepository.updateCompositeEvent(id, updatedEvent, updatedTasks, updatedMembers)
                     if (result) {
+                        // Kirim ulang pesan ke semua member
+                        GlobalScope.launch {
+                            val message = buildString {
+                                appendLine("📢 *Event Telah Diperbarui!*")
+                                appendLine()
+                                appendLine("${updatedEvent.name}")
+                                appendLine("${formatDateTime(updatedEvent.startTime)}")
+                                appendLine("${formatDateTime(updatedEvent.endTime)}")
+                                appendLine()
+                                appendLine("${updatedEvent.description}")
+                                appendLine()
+                                appendLine("Task:")
+                                updatedTasks.forEachIndexed { index, task ->
+                                    appendLine("${index + 1}. ${task.description} – ${task.taskType.replaceFirstChar { it.uppercase() }}")
+                                }
+                            }
+
+                            updatedMembers.forEach { member ->
+                                WablasService.sendMessage(
+                                    phone = member.memberWhatsapp,
+                                    message = message
+                                )
+                            }
+                        }
+
                         call.respond(HttpStatusCode.OK, "Event updated successfully")
                     } else {
                         call.respond(HttpStatusCode.InternalServerError, "Failed to update event")

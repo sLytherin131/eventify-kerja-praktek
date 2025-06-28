@@ -78,7 +78,12 @@ fun Application.registerAdminRoutes() {
                     )
                 )
                 if (updated) {
-                    call.respond(HttpStatusCode.OK, "Admin updated successfully")
+                    val updatedAdmin = adminRepository.findByWhatsappNumber(whatsappNumber)
+                    if (updatedAdmin != null) {
+                        call.respond(HttpStatusCode.OK, updatedAdmin)
+                    } else {
+                        call.respond(HttpStatusCode.InternalServerError, "Updated but failed to retrieve admin")
+                    }
                 } else {
                     call.respond(HttpStatusCode.NotFound, "Admin not found or update failed")
                 }

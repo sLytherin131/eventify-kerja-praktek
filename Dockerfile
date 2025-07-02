@@ -5,12 +5,12 @@ WORKDIR /app
 
 # Copy gradle wrapper files + settings
 COPY gradle gradle
-COPY gradlew . 
+COPY gradlew .
 COPY build.gradle.kts .
 COPY settings.gradle.kts .
 
-# Tambahkan permission eksekusi untuk gradlew
-RUN chmod +x gradlew
+# Fix permission dan line endings
+RUN apt-get update && apt-get install -y dos2unix && dos2unix gradlew && chmod +x gradlew
 
 # Copy semua source code lainnya
 COPY . .

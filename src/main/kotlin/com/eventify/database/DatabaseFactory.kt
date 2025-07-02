@@ -15,10 +15,10 @@ import com.eventify.models.EventTasks
 object DatabaseFactory {
     fun init() {
         val config = HikariConfig().apply {
-            jdbcUrl = "jdbc:mysql://localhost:3306/eventify_db"
+            jdbcUrl = "jdbc:mysql://mysql-4rck.railway.internal:3306/railway?useSSL=false&allowPublicKeyRetrieval=true"
             driverClassName = "com.mysql.cj.jdbc.Driver"
             username = "root"
-            password = ""
+            password = "YAjeGwGwMjLmGlsHoUjQwMXPthSKCSUw"
             maximumPoolSize = 3
             isAutoCommit = false
             transactionIsolation = "TRANSACTION_REPEATABLE_READ"

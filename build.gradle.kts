@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 plugins {
     kotlin("jvm") version "1.8.21"
@@ -54,7 +55,13 @@ java {
 }
 
 tasks {
-    named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
+    // Disable default jar task to prevent Railway from picking the wrong jar
+    named<Jar>("jar") {
+        enabled = false
+    }
+
+    // Configure shadowJar
+    named<ShadowJar>("shadowJar") {
         archiveBaseName.set("EventifyBackend")
         archiveClassifier.set("")
         archiveVersion.set("0.0.1")
@@ -64,6 +71,7 @@ tasks {
         }
     }
 
+    // Make sure build depends on shadowJar
     build {
         dependsOn(shadowJar)
     }

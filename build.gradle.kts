@@ -55,15 +55,15 @@ java {
 }
 
 tasks {
-    // Disable default jar task to prevent Railway from picking the wrong jar
+    // Disable the default jar task (not needed)
     named<Jar>("jar") {
         enabled = false
     }
 
-    // Configure shadowJar
+    // Configure shadowJar to produce a runnable jar
     named<ShadowJar>("shadowJar") {
         archiveBaseName.set("EventifyBackend")
-        archiveClassifier.set("")
+        archiveClassifier.set("") // no "-all"
         archiveVersion.set("0.0.1")
         mergeServiceFiles()
         manifest {
@@ -71,7 +71,7 @@ tasks {
         }
     }
 
-    // Make sure build depends on shadowJar
+    // Ensure `./gradlew build` produces shadowJar
     build {
         dependsOn(shadowJar)
     }

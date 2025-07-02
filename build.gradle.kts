@@ -55,23 +55,23 @@ java {
 }
 
 tasks {
-    // Disable the default jar task (not needed)
+    // Nonaktifkan default jar agar Railway tidak mengambil jar salah
     named<Jar>("jar") {
         enabled = false
     }
 
-    // Configure shadowJar to produce a runnable jar
+    // Konfigurasi shadowJar agar hasilkan EventifyBackend-all.jar
     named<ShadowJar>("shadowJar") {
         archiveBaseName.set("EventifyBackend")
-        archiveClassifier.set("") // no "-all"
-        archiveVersion.set("0.0.1")
+        archiveClassifier.set("all")       // <-- Penting agar Railway bisa mengenali file ini!
+        archiveVersion.set("")             // <-- Tidak pakai "-0.0.1" di akhir
         mergeServiceFiles()
         manifest {
             attributes(mapOf("Main-Class" to "com.eventify.ApplicationKt"))
         }
     }
 
-    // Ensure `./gradlew build` produces shadowJar
+    // Pastikan perintah build juga menjalankan shadowJar
     build {
         dependsOn(shadowJar)
     }

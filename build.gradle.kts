@@ -5,6 +5,7 @@ plugins {
     kotlin("plugin.serialization") version "1.8.21"
     application
     id("io.ktor.plugin") version "2.3.0"
+    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 group = "com.eventify"
@@ -29,16 +30,13 @@ dependencies {
     implementation("io.ktor:ktor-client-cio:2.3.4")
     implementation("io.ktor:ktor-client-content-negotiation:2.3.4")
     implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.4")
-
     implementation("org.jetbrains.exposed:exposed-core:0.41.1")
     implementation("org.jetbrains.exposed:exposed-dao:0.41.1")
     implementation("org.jetbrains.exposed:exposed-jdbc:0.41.1")
     implementation("com.zaxxer:HikariCP:5.0.1")
     implementation("mysql:mysql-connector-java:8.0.33")
-
     implementation("org.mindrot:jbcrypt:0.4")
     implementation("ch.qos.logback:logback-classic:1.4.7")
-
     testImplementation("io.ktor:ktor-server-tests-jvm:2.3.0")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.8.21")
     implementation("io.ktor:ktor-server-auth-jwt:2.x.x")
@@ -53,4 +51,20 @@ tasks.withType<KotlinCompile> {
 java {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
+}
+
+tasks {
+    named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
+        archiveBaseName.set("EventifyBackend")
+        archiveClassifier.set("")
+        archiveVersion.set("0.0.1")
+        mergeServiceFiles()
+        manifest {
+            attributes(mapOf("Main-Class" to "com.eventify.ApplicationKt"))
+        }
+    }
+
+    build {
+        dependsOn(shadowJar)
+    }
 }

@@ -12,6 +12,8 @@ RUN chmod +x ./gradlew
 
 COPY . .
 
+RUN ./gradlew clean
+
 # ✅ tambahkan argumen debug gradle
 RUN ./gradlew shadowJar --no-daemon --stacktrace --warning-mode all
 

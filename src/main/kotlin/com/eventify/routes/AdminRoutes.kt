@@ -27,11 +27,12 @@ fun Application.registerAdminRoutes() {
                     call.respond(HttpStatusCode.Conflict, "Admin with this WhatsApp number already exists")
                     return@post
                 }
+                val hashedPassword = adminRepository.hashPassword(adminRequest.password)
                 val admin = Admin(
                     whatsappNumber = adminRequest.whatsappNumber,
                     name = adminRequest.name,
                     email = adminRequest.email,
-                    password = adminRequest.password
+                    password = hashedPassword
                 )
                 val created = adminRepository.create(admin)
                 if (created) {
@@ -166,9 +167,10 @@ fun Application.registerAdminRoutes() {
                     return@post
                 }
 
+                val hashedPassword = adminRepository.hashPassword(newPassword)
                 val updated = adminRepository.updateAdmin(
                     admin.whatsappNumber,
-                    admin.copy(password = newPassword)
+                    admin.copy(password = hashedPassword)
                 )
 
                 if (updated) {

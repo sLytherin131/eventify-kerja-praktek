@@ -5,6 +5,7 @@ import com.eventify.models.Admins
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import at.favre.lib.crypto.bcrypt.BCrypt
 
 class AdminRepository {
 
@@ -50,9 +51,15 @@ class AdminRepository {
         deletedRows > 0
     }
 
-    fun verifyPassword(inputPassword: String, storedPassword: String): Boolean {
-        // Replace this with proper password hashing in production
-        return inputPassword == storedPassword
+    // ✅ Hash password dengan bcrypt
+    fun hashPassword(plainPassword: String): String {
+        return BCrypt.withDefaults().hashToString(12, plainPassword.toCharArray())
+    }
+
+    // ✅ Verifikasi password dengan bcrypt
+    fun verifyPassword(inputPassword: String, storedHashedPassword: String): Boolean {
+        val result = BCrypt.verifyer().verify(inputPassword.toCharArray(), storedHashedPassword)
+        return result.verified
     }
 
     private fun toAdmin(row: ResultRow): Admin = Admin(

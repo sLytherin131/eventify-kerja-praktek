@@ -14,7 +14,9 @@ COPY . .
 
 RUN ./gradlew clean
 
-# ✅ tambahkan argumen debug gradle
+# ✅ tambahkan ini supaya dependencies di-resolve dulu
+RUN ./gradlew build --no-daemon --stacktrace --warning-mode all || true
+
 RUN ./gradlew shadowJar --no-daemon --stacktrace --warning-mode all
 
 # ===== STAGE 2: RUNTIME =====

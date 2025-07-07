@@ -36,7 +36,6 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-jdbc:0.41.1")
     implementation("com.zaxxer:HikariCP:5.0.1")
     implementation("mysql:mysql-connector-java:8.0.33")
-    implementation("org.mindrot:jbcrypt:0.4")
     implementation("ch.qos.logback:logback-classic:1.4.7")
     testImplementation("io.ktor:ktor-server-tests-jvm:2.3.0")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.8.21")

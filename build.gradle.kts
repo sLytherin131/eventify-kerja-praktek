@@ -40,7 +40,6 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.4.7")
     testImplementation("io.ktor:ktor-server-tests-jvm:2.3.0")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:1.8.21")
-    implementation("io.ktor:ktor-server-auth-jwt:2.x.x")
     implementation("at.favre.lib:bcrypt:0.9.0")
 }
 

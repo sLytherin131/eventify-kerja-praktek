@@ -67,17 +67,23 @@ fun Application.registerAdminRoutes() {
                     call.respond(HttpStatusCode.BadRequest, "WhatsApp number is required")
                     return@put
                 }
+            
                 val updateRequest = call.receive<AdminRequest>()
+            
+                // ✅ Hash password sebelum update
+                val hashedPassword = adminRepository.hashPassword(updateRequest.password)
+            
                 val updated = adminRepository.updateAdmin(
                     whatsappNumber,
                     Admin(
                         whatsappNumber = whatsappNumber,
                         name = updateRequest.name,
                         email = updateRequest.email,
-                        password = updateRequest.password,
+                        password = hashedPassword, // 👈 password sudah di-hash
                         createdAt = System.currentTimeMillis()
                     )
                 )
+            
                 if (updated) {
                     val updatedAdmin = adminRepository.findByWhatsappNumber(whatsappNumber)
                     if (updatedAdmin != null) {

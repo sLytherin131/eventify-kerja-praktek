@@ -12,11 +12,10 @@ RUN chmod +x ./gradlew
 
 COPY . .
 
-RUN ./gradlew clean
+# ⛔️ HAPUS `|| true`
+RUN ./gradlew build --no-daemon --stacktrace --warning-mode all
 
-# ✅ tambahkan ini supaya dependencies di-resolve dulu
-RUN ./gradlew build --no-daemon --stacktrace --warning-mode all || true
-
+# ✅ Tetap build shadow jar
 RUN ./gradlew shadowJar --no-daemon --stacktrace --warning-mode all
 
 # ===== STAGE 2: RUNTIME =====

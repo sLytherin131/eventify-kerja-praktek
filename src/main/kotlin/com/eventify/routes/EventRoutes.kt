@@ -18,7 +18,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.*
 
-fun formatDateTime(epochMillis: Long): String {
+fun formatDateTimeForEvent(epochMillis: Long): String {
     val formatter = DateTimeFormatter.ofPattern("EEEE – HH:mm, dd MMMM yyyy")
         .withLocale(Locale.ENGLISH)
         .withZone(ZoneId.of("Asia/Jakarta"))
@@ -80,8 +80,8 @@ fun Application.registerEventRoutes() {
                                 appendLine("📢 *Event Baru Telah Dibuat!*")
                                 appendLine()
                                 appendLine("${createdEvent.name}")
-                                appendLine("${formatDateTime(createdEvent.startTime)}")
-                                appendLine("${formatDateTime(createdEvent.endTime)}")
+                                appendLine("${formatDateTimeForEvent(createdEvent.startTime)}")
+                                appendLine("${formatDateTimeForEvent(createdEvent.endTime)}")
                                 appendLine()
                                 appendLine("${createdEvent.description}")
                                 appendLine()
@@ -185,8 +185,8 @@ fun Application.registerEventRoutes() {
                                 appendLine("📢 *Event Telah Diperbarui!*")
                                 appendLine()
                                 appendLine("${updatedEvent.name}")
-                                appendLine("${formatDateTime(updatedEvent.startTime)}")
-                                appendLine("${formatDateTime(updatedEvent.endTime)}")
+                                appendLine("${formatDateTimeForEvent(updatedEvent.startTime)}")
+                                appendLine("${formatDateTimeForEvent(updatedEvent.endTime)}")
                                 appendLine()
                                 appendLine("${updatedEvent.description}")
                                 appendLine()

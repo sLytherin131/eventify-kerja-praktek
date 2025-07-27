@@ -204,17 +204,16 @@ class EventRepository {
 
     // 🔔 Tambahan: Ambil event yang H-3 dan belum dikirim reminder
     fun getEventsForHMinus3Reminder(): List<EventWithDetails> = transaction {
-        val zoneId = ZoneId.of("Asia/Jakarta")
-        val jakartaNow = Instant.now().atZone(zoneId)
-        val h3Start = jakartaNow.plusDays(3).toLocalDate().atStartOfDay(zoneId).toInstant()
-        val h3End = h3Start.plus(1, ChronoUnit.DAYS).minusMillis(1)
-
+        val now = Instant.now()
+        val startRange = now.plus(72, ChronoUnit.HOURS).minus(30, ChronoUnit.MINUTES)
+        val endRange = now.plus(72, ChronoUnit.HOURS).plus(30, ChronoUnit.MINUTES)
+    
         Events.select {
             (Events.reminderSent eq false) and
-            (Events.startTime.between(h3Start.toEpochMilli(), h3End.toEpochMilli()))
+            (Events.startTime.between(startRange.toEpochMilli(), endRange.toEpochMilli()))
         }.map { eventRow ->
             val eventId = eventRow[Events.id]
-
+    
             val tasks = EventTasks.select { EventTasks.eventId eq eventId }.map {
                 EventTask(
                     id = it[EventTasks.id],
@@ -224,7 +223,7 @@ class EventRepository {
                     createdAt = it[EventTasks.createdAt]
                 )
             }
-
+    
             val members = EventMembers.select { EventMembers.eventId eq eventId }.map {
                 EventMember(
                     id = it[EventMembers.id],
@@ -232,7 +231,7 @@ class EventRepository {
                     memberWhatsapp = it[EventMembers.memberWhatsapp]
                 )
             }
-
+    
             EventWithDetails(
                 event = Event(
                     id = eventRow[Events.id],

@@ -70,8 +70,18 @@ fun Application.registerAdminRoutes() {
             
                 val updateRequest = call.receive<AdminRequest>()
             
-                // ✅ Hash password sebelum update
-                val hashedPassword = adminRepository.hashPassword(updateRequest.password)
+                val existingAdmin = adminRepository.findByWhatsappNumber(whatsappNumber)
+                if (existingAdmin == null) {
+                    call.respond(HttpStatusCode.NotFound, "Admin not found")
+                    return@put
+                }
+            
+                // ✅ Hanya hash password jika berbeda dari password yang sudah tersimpan
+                val hashedPassword = if (adminRepository.verifyPassword(updateRequest.password, existingAdmin.password)) {
+                    existingAdmin.password // pakai yang lama
+                } else {
+                    adminRepository.hashPassword(updateRequest.password) // hash baru
+                }
             
                 val updated = adminRepository.updateAdmin(
                     whatsappNumber,
@@ -79,7 +89,7 @@ fun Application.registerAdminRoutes() {
                         whatsappNumber = whatsappNumber,
                         name = updateRequest.name,
                         email = updateRequest.email,
-                        password = hashedPassword, // 👈 password sudah di-hash
+                        password = hashedPassword,
                         createdAt = System.currentTimeMillis()
                     )
                 )

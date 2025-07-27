@@ -5,6 +5,8 @@ import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
 import kotlinx.serialization.Serializable
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 @Serializable
 data class EventWithDetails(
@@ -24,6 +26,7 @@ class EventRepository {
                     it[startTime] = event.startTime
                     it[endTime] = event.endTime
                     it[createdBy] = event.createdBy
+                    it[reminderSent] = false
                 } get Events.id
 
                 tasks.forEach { task ->
@@ -79,7 +82,8 @@ class EventRepository {
                     description = eventRow[Events.description],
                     startTime = eventRow[Events.startTime],
                     endTime = eventRow[Events.endTime],
-                    createdBy = eventRow[Events.createdBy]
+                    createdBy = eventRow[Events.createdBy],
+                    reminderSent = eventRow[Events.reminderSent]
                 ),
                 tasks = tasks,
                 members = members
@@ -116,7 +120,8 @@ class EventRepository {
                     description = eventRow[Events.description],
                     startTime = eventRow[Events.startTime],
                     endTime = eventRow[Events.endTime],
-                    createdBy = eventRow[Events.createdBy]
+                    createdBy = eventRow[Events.createdBy],
+                    reminderSent = eventRow[Events.reminderSent]
                 ),
                 tasks = tasks,
                 members = members
@@ -152,7 +157,8 @@ class EventRepository {
                 description = eventRow[Events.description],
                 startTime = eventRow[Events.startTime],
                 endTime = eventRow[Events.endTime],
-                createdBy = eventRow[Events.createdBy]
+                createdBy = eventRow[Events.createdBy],
+                reminderSent = eventRow[Events.reminderSent]
             ),
             tasks = tasks,
             members = members
@@ -166,6 +172,7 @@ class EventRepository {
             it[startTime] = newEvent.startTime
             it[endTime] = newEvent.endTime
             it[createdBy] = newEvent.createdBy
+            it[reminderSent] = newEvent.reminderSent
         }
 
         EventTasks.deleteWhere { EventTasks.eventId eq id }
@@ -193,5 +200,58 @@ class EventRepository {
         EventTasks.deleteWhere { EventTasks.eventId eq id }
         EventMembers.deleteWhere { EventMembers.eventId eq id }
         Events.deleteWhere { Events.id eq id } > 0
+    }
+
+    // 🔔 Tambahan: Ambil event yang H-3 dan belum dikirim reminder
+    fun getEventsForHMinus3Reminder(): List<EventWithDetails> = transaction {
+        val now = Instant.now()
+        val h3Start = now.plus(3, ChronoUnit.DAYS).truncatedTo(ChronoUnit.DAYS)
+        val h3End = h3Start.plus(1, ChronoUnit.DAYS).minusMillis(1)
+
+        Events.select {
+            (Events.reminderSent eq false) and
+            (Events.startTime.between(h3Start.toEpochMilli(), h3End.toEpochMilli()))
+        }.map { eventRow ->
+            val eventId = eventRow[Events.id]
+
+            val tasks = EventTasks.select { EventTasks.eventId eq eventId }.map {
+                EventTask(
+                    id = it[EventTasks.id],
+                    eventId = it[EventTasks.eventId],
+                    description = it[EventTasks.description],
+                    taskType = it[EventTasks.taskType],
+                    createdAt = it[EventTasks.createdAt]
+                )
+            }
+
+            val members = EventMembers.select { EventMembers.eventId eq eventId }.map {
+                EventMember(
+                    id = it[EventMembers.id],
+                    eventId = it[EventMembers.eventId],
+                    memberWhatsapp = it[EventMembers.memberWhatsapp]
+                )
+            }
+
+            EventWithDetails(
+                event = Event(
+                    id = eventRow[Events.id],
+                    name = eventRow[Events.name],
+                    description = eventRow[Events.description],
+                    startTime = eventRow[Events.startTime],
+                    endTime = eventRow[Events.endTime],
+                    createdBy = eventRow[Events.createdBy],
+                    reminderSent = eventRow[Events.reminderSent]
+                ),
+                tasks = tasks,
+                members = members
+            )
+        }
+    }
+
+    // ✅ Tandai bahwa reminder sudah dikirim
+    fun markReminderSent(eventId: Int): Boolean = transaction {
+        Events.update({ Events.id eq eventId }) {
+            it[reminderSent] = true
+        } > 0
     }
 }

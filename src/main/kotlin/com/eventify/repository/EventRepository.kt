@@ -204,8 +204,9 @@ class EventRepository {
 
     // 🔔 Tambahan: Ambil event yang H-3 dan belum dikirim reminder
     fun getEventsForHMinus3Reminder(): List<EventWithDetails> = transaction {
-        val now = Instant.now()
-        val h3Start = now.plus(3, ChronoUnit.DAYS).truncatedTo(ChronoUnit.DAYS)
+        val zoneId = ZoneId.of("Asia/Jakarta")
+        val jakartaNow = Instant.now().atZone(zoneId)
+        val h3Start = jakartaNow.plusDays(3).toLocalDate().atStartOfDay(zoneId).toInstant()
         val h3End = h3Start.plus(1, ChronoUnit.DAYS).minusMillis(1)
 
         Events.select {

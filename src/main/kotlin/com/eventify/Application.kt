@@ -104,8 +104,7 @@ fun Application.launchReminderScheduler() {
                 println("Reminder Scheduler Error: ${e.message}")
             }
 
-            delay(6 * 60 * 60 * 1000L) // setiap 6 jam (kembalikan ke sini setelah testing)
-            // delay(60 * 1000L) // ➕ Ganti jadi 1 menit saat testing
+            delay(6 * 60 * 60 * 1000L)
         }
     }
 }

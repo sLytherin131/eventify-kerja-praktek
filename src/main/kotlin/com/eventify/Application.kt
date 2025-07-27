@@ -25,19 +25,29 @@ fun main() {
         .start(wait = true)
 }
 
-// Modul utama Ktor
 fun Application.module() {
     configureSerialization()
     configureSecurity()
-    DatabaseFactory.init()
+
+    // 🛡️ Coba inisialisasi database, tapi aman dari error saat build
+    try {
+        DatabaseFactory.init()
+        println("✅ Database connected")
+    } catch (e: Exception) {
+        println("❌ Gagal koneksi database: ${e.message}")
+    }
 
     registerAdminRoutes()
     registerMemberRoutes()
     registerPersonalTaskRoutes()
     registerEventRoutes()
 
-    // ✅ Pindahkan scheduler ke sini agar tidak error saat build/deploy
-    launchReminderScheduler()
+    // ✅ Hanya jalankan scheduler saat runtime di Railway
+    if (System.getenv("RAILWAY_ENVIRONMENT") == "production") {
+        launchReminderScheduler()
+    } else {
+        println("🚫 Scheduler tidak dijalankan (bukan production)")
+    }
 }
 
 fun Application.configureSerialization() {
@@ -104,7 +114,7 @@ fun Application.launchReminderScheduler() {
                 println("Reminder Scheduler Error: ${e.message}")
             }
 
-            delay(6 * 60 * 60 * 1000L)
+            delay(6 * 60 * 60 * 1000L) // delay 6 jam
         }
     }
 }
@@ -116,3 +126,9 @@ fun formatDateTimeForReminder(epochMillis: Long): String {
     return formatter.format(Instant.ofEpochMilli(epochMillis))
 }
 
+fun formatDateTime(epochMillis: Long): String {
+    val formatter = DateTimeFormatter.ofPattern("HH:mm, dd MMM yyyy")
+        .withLocale(Locale("id", "ID"))
+        .withZone(ZoneId.of("Asia/Jakarta"))
+    return formatter.format(Instant.ofEpochMilli(epochMillis))
+}

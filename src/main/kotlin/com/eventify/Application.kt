@@ -73,7 +73,7 @@ fun Application.launchReminderScheduler() {
                 val now = Instant.now().toEpochMilli()
                 val threeDaysFromNow = now + 3 * 24 * 60 * 60 * 1000
 
-                val events = eventRepository.getEventsForReminder(threeDaysFromNow)
+                val events = eventRepository.getEventsForHMinus3Reminder()
 
                 for (event in events) {
                     val message = buildString {

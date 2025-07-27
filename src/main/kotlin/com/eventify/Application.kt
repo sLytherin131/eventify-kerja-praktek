@@ -4,10 +4,7 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.eventify.database.DatabaseFactory
 import com.eventify.repository.EventRepository
-import com.eventify.routes.registerAdminRoutes
-import com.eventify.routes.registerEventRoutes
-import com.eventify.routes.registerMemberRoutes
-import com.eventify.routes.registerPersonalTaskRoutes
+import com.eventify.routes.*
 import com.eventify.service.WablasService
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -23,16 +20,23 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 
 fun main() {
-    embeddedServer(Netty, port = 8082, host = "0.0.0.0") {
-        configureSerialization()
-        configureSecurity()
-        DatabaseFactory.init()
-        registerAdminRoutes()
-        registerMemberRoutes()
-        registerPersonalTaskRoutes()
-        registerEventRoutes()
-        launchReminderScheduler() // ⬅️ Tambahkan scheduler setelah semua route
-    }.start(wait = true)
+    embeddedServer(Netty, port = 8082, host = "0.0.0.0", module = Application::module)
+        .start(wait = true)
+}
+
+// Modul utama Ktor
+fun Application.module() {
+    configureSerialization()
+    configureSecurity()
+    DatabaseFactory.init()
+
+    registerAdminRoutes()
+    registerMemberRoutes()
+    registerPersonalTaskRoutes()
+    registerEventRoutes()
+
+    // ✅ Pindahkan scheduler ke sini agar tidak error saat build/deploy
+    launchReminderScheduler()
 }
 
 fun Application.configureSerialization() {
@@ -94,7 +98,7 @@ fun Application.launchReminderScheduler() {
                 println("Reminder Scheduler Error: ${e.message}")
             }
 
-            delay(6 * 60 * 60 * 1000L) // Jalankan setiap 6 jam
+            delay(6 * 60 * 60 * 1000L) // setiap 6 jam
         }
     }
 }

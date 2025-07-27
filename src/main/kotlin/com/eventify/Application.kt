@@ -70,8 +70,13 @@ fun Application.launchReminderScheduler() {
     CoroutineScope(Dispatchers.IO).launch {
         while (true) {
             try {
-                val now = Instant.now().toEpochMilli()
-                val threeDaysFromNow = now + 3 * 24 * 60 * 60 * 1000
+                val zoneId = ZoneId.of("Asia/Jakarta")
+                val now = Instant.now().atZone(zoneId)
+                val h3Start = now.plusDays(3).toLocalDate().atStartOfDay(zoneId).toInstant()
+                val h3End = h3Start.plus(1, ChronoUnit.DAYS).minusMillis(1)
+
+                println("🔄 Scheduler dijalankan pada: ${formatDateTime(now.toInstant().toEpochMilli())}")
+                println("🔍 Mencari event antara ${formatDateTime(h3Start.toEpochMilli())} dan ${formatDateTime(h3End.toEpochMilli())}")
 
                 val events = eventRepository.getEventsForHMinus3Reminder()
 
@@ -98,7 +103,8 @@ fun Application.launchReminderScheduler() {
                 println("Reminder Scheduler Error: ${e.message}")
             }
 
-            delay(6 * 60 * 60 * 1000L) // setiap 6 jam
+            delay(6 * 60 * 60 * 1000L) // setiap 6 jam (kembalikan ke sini setelah testing)
+            // delay(60 * 1000L) // ➕ Ganti jadi 1 menit saat testing
         }
     }
 }

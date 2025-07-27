@@ -113,7 +113,7 @@ fun Application.launchReminderScheduler() {
                 println("❌ Reminder Scheduler Error: ${e.message}")
             }
 
-            delay(6 * 60 * 60 * 1000L) // delay 6 jam
+            delay(1 * 60 * 1000L) // delay 1 menit
         }
     }
 }

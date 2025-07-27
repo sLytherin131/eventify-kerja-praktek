@@ -76,7 +76,7 @@ fun Application.launchReminderScheduler() {
                 val h3Start = now.plusDays(3).toLocalDate().atStartOfDay(zoneId).toInstant()
                 val h3End = h3Start.plus(1, ChronoUnit.DAYS).minusMillis(1)
 
-                println("🔄 Scheduler dijalankan pada: ${formatDateTime(now.toInstant().toEpochMilli())}")
+                println("🔄 Scheduler dijalankan pada: ${formatDateTimeForReminder(now.toInstant().toEpochMilli())}")
                 println("🔍 Mencari event antara ${formatDateTime(h3Start.toEpochMilli())} dan ${formatDateTime(h3End.toEpochMilli())}")
 
                 val events = eventRepository.getEventsForHMinus3Reminder()
@@ -85,7 +85,7 @@ fun Application.launchReminderScheduler() {
                     val message = buildString {
                         appendLine("📢 *Pengingat Acara!*")
                         appendLine("Acara: ${event.event.name}")
-                        appendLine("Tanggal: ${formatDateTime(event.event.startTime)}")
+                        appendLine("Tanggal: ${formatDateTimeForReminder(event.event.startTime)}")
                         appendLine("Deskripsi: ${event.event.description}")
                         appendLine()
                         appendLine("Jangan sampai lupa ya! 🙌")
@@ -109,9 +109,10 @@ fun Application.launchReminderScheduler() {
     }
 }
 
-fun formatDateTime(epochMillis: Long): String {
+fun formatDateTimeForReminder(epochMillis: Long): String {
     val formatter = DateTimeFormatter.ofPattern("EEEE – HH:mm, dd MMMM yyyy")
         .withLocale(Locale("id", "ID"))
         .withZone(ZoneId.of("Asia/Jakarta"))
     return formatter.format(Instant.ofEpochMilli(epochMillis))
 }
+

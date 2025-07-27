@@ -88,7 +88,7 @@ fun Application.launchReminderScheduler() {
                         appendLine("Tanggal: ${formatDateTime(event.event.startTime)}")
                         appendLine("Deskripsi: ${event.event.description}")
                         appendLine()
-                        appendLine("Jangan lupa untuk hadir ya! 🙌")
+                        appendLine("Jangan sampai lupa ya! 🙌")
                     }
 
                     event.members.forEach { member ->

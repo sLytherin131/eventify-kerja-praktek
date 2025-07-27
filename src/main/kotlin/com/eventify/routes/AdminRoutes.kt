@@ -77,10 +77,10 @@ fun Application.registerAdminRoutes() {
                 }
             
                 // ✅ Hanya hash password jika berbeda dari password yang sudah tersimpan
-                val hashedPassword = if (adminRepository.verifyPassword(updateRequest.password, existingAdmin.password)) {
-                    existingAdmin.password // pakai yang lama
-                } else {
-                    adminRepository.hashPassword(updateRequest.password) // hash baru
+                val hashedPassword = when {
+                    updateRequest.password.isNullOrBlank() -> existingAdmin.password
+                    adminRepository.verifyPassword(updateRequest.password, existingAdmin.password) -> existingAdmin.password
+                    else -> adminRepository.hashPassword(updateRequest.password)
                 }
             
                 val updated = adminRepository.updateAdmin(
@@ -235,7 +235,7 @@ data class AdminRequest(
     val whatsappNumber: String,
     val name: String,
     val email: String,
-    val password: String
+    val password: String? = null  // ❗️ubah jadi opsional
 )
 
 @Serializable

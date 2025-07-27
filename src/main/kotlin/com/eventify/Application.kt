@@ -21,15 +21,15 @@ import java.util.*
 import java.time.temporal.ChronoUnit
 
 fun main() {
-    embeddedServer(Netty, port = 8082, host = "0.0.0.0", module = Application::module)
-        .start(wait = true)
+    embeddedServer(Netty, port = 8082, host = "0.0.0.0") {
+        mainModule() // Jalankan module secara aman di dalam lambda
+    }.start(wait = true)
 }
 
-fun Application.module() {
+fun Application.mainModule() {
     configureSerialization()
     configureSecurity()
 
-    // 🛡️ Coba inisialisasi database, tapi aman dari error saat build
     try {
         DatabaseFactory.init()
         println("✅ Database connected")
@@ -42,11 +42,10 @@ fun Application.module() {
     registerPersonalTaskRoutes()
     registerEventRoutes()
 
-    // ✅ Hanya jalankan scheduler saat runtime di Railway
     if (System.getenv("RAILWAY_ENVIRONMENT") == "production") {
         launchReminderScheduler()
     } else {
-        println("🚫 Scheduler tidak dijalankan (bukan production)")
+        println("🚫 Scheduler tidak dijalankan karena bukan production environment")
     }
 }
 
@@ -111,7 +110,7 @@ fun Application.launchReminderScheduler() {
                     eventRepository.markReminderSent(event.event.id)
                 }
             } catch (e: Exception) {
-                println("Reminder Scheduler Error: ${e.message}")
+                println("❌ Reminder Scheduler Error: ${e.message}")
             }
 
             delay(6 * 60 * 60 * 1000L) // delay 6 jam

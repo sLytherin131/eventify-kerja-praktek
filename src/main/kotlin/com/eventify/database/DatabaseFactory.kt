@@ -28,7 +28,14 @@ object DatabaseFactory {
         Database.connect(dataSource)
 
         transaction {
-            SchemaUtils.createMissingTablesAndColumns(Admins, PersonalTasks, Members, EventMembers, EventTasks)
+            SchemaUtils.createMissingTablesAndColumns(
+                Admins,
+                PersonalTasks,
+                Members,
+                Events,          // ⬅️ Tambahkan ini
+                EventMembers,
+                EventTasks
+            )
         }
     }
 }

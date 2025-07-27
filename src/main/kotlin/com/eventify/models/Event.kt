@@ -12,6 +12,7 @@ object Events : Table("events") {
     val endTime = long("end_time")
     val createdBy = varchar("created_by", 50)
     override val primaryKey = PrimaryKey(id, name = "PK_Events_Id")
+    val reminderSent = bool("reminder_sent").default(false)
 }
 
 @Serializable
@@ -21,5 +22,6 @@ data class Event(
     val description: String,
     val startTime: Long,
     val endTime: Long,
-    val createdBy: String
+    val createdBy: String,
+    val reminderSent: Boolean = false  // ⬅️ ini yang ditambahkan
 )
